@@ -1,0 +1,42 @@
+version: '3.8'
+
+services:
+  mcp-server:
+    build:
+      context: .
+      dockerfile: Dockerfile.ultimate
+    container_name: ubuntu-mcp-ultimate
+    privileged: true  # Required for Docker-in-Docker
+    ports:
+      - "8000:8000"    # MCP Server
+      - "80:80"        # HTTP
+      - "443:443"      # HTTPS
+      - "3000-3010:3000-3010"  # Application ports
+    environment:
+      - MCP_API_KEY=${MCP_API_KEY:-change-this-secret-key}
+      - PORT=8000
+      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD:-}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-postgres}
+    volumes:
+      - ./projects:/var/www
+      - ./backups:/var/backups/mcp
+      - ./logs:/var/log/mcp
+      - /var/run/docker.sock:/var/run/docker.sock  # Docker socket
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - mcp-network
+
+networks:
+  mcp-network:
+    driver: bridge
+
+volumes:
+  mysql-data:
+  postgres-data:
+  redis-data:
